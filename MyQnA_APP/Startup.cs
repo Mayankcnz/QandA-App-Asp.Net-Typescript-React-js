@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using DbUp;
+using MyQnA_APP.Data;
 
 namespace MyQnA_APP
 {
@@ -57,6 +58,16 @@ namespace MyQnA_APP
             }
 
             services.AddControllers();
+
+            // make data repository available for dependency injection
+            // This will tell asp.net that whenever IDataRepositroy is referenced
+            // in a constructor substitute an instance of the DataRepositopry class
+            /**
+             * The AddScoped method means only one instance of the DataRepository class
+             * is created in the same Http request. This means the lifetime the lifetime of the class
+             * that is created lassts for whole http request. 
+             */
+            services.AddScoped<IDataRepository, DataRepository>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

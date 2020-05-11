@@ -29,6 +29,7 @@ namespace MyQnA_APP.Data
             _connectionString = configuration["ConnectionStrings:DefaultConnection"];
         }
 
+
         public AnswerGetResponse GetAnswer(int answerId)
         {
             using (var connection = new SqlConnection(_connectionString)) {
@@ -107,7 +108,7 @@ namespace MyQnA_APP.Data
          * We have used a model class called QuestionPostRequest for Dapper to map
          * to the SQL paramters.
          */
-        public QuestionGetSingleResponse PostQuestion(QuestionPostRequest question)
+        public QuestionGetSingleResponse PostQuestion(QuestionPostFullRequest question)
         {
             using (var connection = new SqlConnection(_connectionString))
             {
@@ -161,7 +162,7 @@ namespace MyQnA_APP.Data
             }
         }
 
-        public AnswerGetResponse PostAnswer(AnswerPostRequest answer) { 
+        public AnswerGetResponse PostAnswer(AnswerPostFullRequest answer) { 
             using (var connection = new SqlConnection(_connectionString)) 
             { connection.Open(); 
                 return connection.QueryFirst<AnswerGetResponse>(@"EXEC dbo.Answer_Post 
