@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using System.Data.SqlClient;
 using Dapper;
 using MyQnA_APP.Data.Models;
+using Microsoft.Extensions.Hosting.Internal;
+using static Dapper.SqlMapper;
 
 namespace MyQnA_APP.Data
 {
@@ -45,24 +47,31 @@ namespace MyQnA_APP.Data
          * Paramter values passed into a dapper query using an object with its 
          * property names matching the paramter names. Dapper will then create and execute
          * a paramterized query
+         * 
+         * Gets the question and gets answers of the questions
          */
         public QuestionGetSingleResponse GetQuestion(int questionId)
-        {
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                connection.Open(); var question = connection.QueryFirstOrDefault<QuestionGetSingleResponse>
-                    (@"EXEC dbo.Question_GetSingle @QuestionId = @QuestionId",
-                    new { QuestionId = questionId });
-                // - Get the answers for the question
-                if (question != null)
-                {
-                    question.Answers = connection.Query<AnswerGetResponse>(
-                        @"EXEC dbo.Answer_Get_ByQuestionId
+        { 
+            using (var connection = new SqlConnection(_connectionString)) 
+            { 
+                connection.Open(); 
+                using (GridReader results = connection.QueryMultiple(
+                    @"EXEC dbo.Question_GetSingle   
+                        @QuestionId = @QuestionId;      
+                    EXEC dbo.Answer_Get_ByQuestionId        
                         @QuestionId = @QuestionId",
-                        new { QuestionId = questionId });
-                }
-                return question;
-            }
+                    new { QuestionId = questionId })) 
+                {
+                    var question = results.Read<QuestionGetSingleResponse>()
+                        .FirstOrDefault(); 
+                    if (question != null) 
+                    { 
+                        question.Answers = results.Read<AnswerGetResponse>()
+                            .ToList(); 
+                    } 
+                    return question;
+                } 
+            } 
         }
 
         public IEnumerable<QuestionGetManyResponse> GetQuestions()
@@ -75,6 +84,7 @@ namespace MyQnA_APP.Data
                 );
             }
         }
+
 
         public IEnumerable<QuestionGetManyResponse> GetQuestionsBySearch(string search)
         {
@@ -172,7 +182,58 @@ namespace MyQnA_APP.Data
             } 
         }
 
+        public IEnumerable<QuestionGetManyResponse> GetQuestionWithAnswers()
+        {
 
+            Console.WriteLine("========QUESTIONWITHASNWERS=============");
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                connection.Open();
+                var questionDictionary = new Dictionary<int, QuestionGetManyResponse>();
+                return connection.Query<QuestionGetManyResponse, AnswerGetResponse, QuestionGetManyResponse>
+                    ("EXEC dbo.Question_GetMany_WithAnswers", map: (q, a) => {
+                        QuestionGetManyResponse question;
+                        if (!questionDictionary.TryGetValue(q.QuestionId, out question))
+                        {
+                            question = q;
+                            question.Answers = new List<AnswerGetResponse>();
+                            Console.WriteLine("asdhjasbdhjasgdjhasgdj");
+                            questionDictionary.Add(question.QuestionId, question);
+                        }
+                        question.Answers.Add(a);
+                        return question;
+                    }, splitOn: "QuestionId")
+                    .Distinct()
+                    .ToList();
+            }
+        }
 
+        public IEnumerable<QuestionGetManyResponse> GetQuestionsBySearchWithPaging(string search, int pageNumber, int pageSize)
+        {
+            using (var connection = new SqlConnection(_connectionString)) 
+            { 
+                connection.Open(); 
+                var parameters = new 
+                { 
+                    Search = search, PageNumber = pageNumber, PageSize = pageSize
+                };
+                return connection.Query<QuestionGetManyResponse>(
+                    @"EXEC dbo.Question_GetMany_BySearch_WithPaging   
+                        @Search = @Search,     
+                        @PageNumber = @PageNumber,    
+                        @PageSize = @PageSize",
+                    parameters);
+            }
+        }
+
+        public async Task<IEnumerable<QuestionGetManyResponse>> GetUnansweredQuestionsAsync()
+        {
+            using (var connection = new SqlConnection(_connectionString))
+            { 
+                await connection.OpenAsync(); 
+                return await connection.QueryAsync<QuestionGetManyResponse>(
+                    "EXEC dbo.Question_GetUnanswered"); 
+            }
+        }
     }
 }

@@ -23,9 +23,7 @@ namespace MyQnA_APP.Controllers
      * validation, which we'll take advantage.
      */
     [Route("api/[controller]")]
-
     [ApiController]
-
     public class QuestionsController : ControllerBase
 
     {
@@ -48,25 +46,31 @@ namespace MyQnA_APP.Controllers
 
         [HttpGet]
 
-        public IEnumerable<QuestionGetManyResponse> GetQuestions(string search)
+        public IEnumerable<QuestionGetManyResponse> GetQuestions(string search, bool includeAnswers, int page = 1 , int pageSize = 20)
 
         {
 
             if (string.IsNullOrEmpty(search))
 
-
             {
 
-                return _dataRepository.GetQuestions();
-
+                if(includeAnswers)
+                {
+                    return _dataRepository.GetQuestionWithAnswers();
+                }else
+                {
+                    return _dataRepository.GetQuestions();
+                }
+           
+                
             }
-
             else
 
             {
-
-                return _dataRepository.GetQuestionsBySearch(search);
-
+                return _dataRepository.GetQuestionsBySearchWithPaging(
+                    search,
+                    page,
+                    pageSize);
             }
 
         }
@@ -75,11 +79,9 @@ namespace MyQnA_APP.Controllers
 
         [HttpGet("unanswered")]
 
-        public IEnumerable<QuestionGetManyResponse> GetUnansweredQuestions()
-
+        public async Task<IEnumerable<QuestionGetManyResponse>> GetUnansweredQuestions()
         {
-
-            return _dataRepository.GetUnansweredQuestions();
+            return await _dataRepository.GetUnansweredQuestionsAsync();
 
         }
 
@@ -190,6 +192,22 @@ namespace MyQnA_APP.Controllers
                 UserName = "bob.test@test.com",
                 Created = DateTime.UtcNow
             });
+
+
+            /**
+             * We get access to the SignalR group through the Group method in the Clients property in the hub context
+             * by passing in the group name. Remember that the group name is the word "Question", 
+             * followed by a hyphen and then the question ID. Then, we use the SendAsync method to push 
+             * the question with the new answer to all the clients in the group. A handler called ReceiveQuestion
+             * will be invoked in the client, with the question being passed in as the parameter after 
+             * we have got it from the data repository.
+             */
+
+            _questionHubContext.Clients.Group(
+                $"Question-{answerPostRequest.QuestionId.Value}").
+                SendAsync("ReceiveQuestion",
+                _dataRepository.GetQuestion(answerPostRequest.QuestionId.Value));
+
 
             return savedAnswer;
         }

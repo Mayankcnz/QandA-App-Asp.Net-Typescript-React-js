@@ -6,10 +6,16 @@ using System.Threading.Tasks;
 
 namespace MyQnA_APP.Data
 {
+
+    /**
+     * A key difference of an asynchronous method is that it returns a Task of the type that will eventually be returned. 
+     */
     public interface IDataRepository
     {
         IEnumerable<QuestionGetManyResponse> GetQuestions();
         IEnumerable<QuestionGetManyResponse> GetQuestionsBySearch(string search);
+        Task<IEnumerable<QuestionGetManyResponse>> GetUnansweredQuestionsAsync();
+        
         IEnumerable<QuestionGetManyResponse> GetUnansweredQuestions();
         QuestionGetSingleResponse GetQuestion(int questionId);
         bool QuestionExists(int questionId);
@@ -19,5 +25,8 @@ namespace MyQnA_APP.Data
         QuestionGetSingleResponse PutQuestion(int questionId, QuestionPutRequest question);
         void DeleteQuestion(int questionId);
         AnswerGetResponse PostAnswer(AnswerPostFullRequest answer);
+
+        IEnumerable<QuestionGetManyResponse> GetQuestionWithAnswers();
+        IEnumerable<QuestionGetManyResponse> GetQuestionsBySearchWithPaging(string search, int pageNumber, int pageSize);
     }
 }
