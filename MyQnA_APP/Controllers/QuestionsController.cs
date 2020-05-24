@@ -10,6 +10,11 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.AspNetCore.SignalR;
 using MyQnA_APP.Hubs;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using System.Net.Http;
+using Microsoft.Extensions.Configuration;
+using System.Text.Json;
 
 namespace MyQnA_APP.Controllers
 {
@@ -25,28 +30,30 @@ namespace MyQnA_APP.Controllers
     [Route("api/[controller]")]
     [ApiController]
     public class QuestionsController : ControllerBase
-
     {
-
         private readonly IDataRepository _dataRepository;
         // The hubcontext interface allows us to interact with signalR clients
         private readonly IHubContext<QuestionsHub> _questionHubContext;
+        private readonly IQuestionCache _cache;
+        private readonly IHttpClientFactory _clientFactory;
+        private readonly string _auth0UserInfo;
 
 
+        public QuestionsController(IDataRepository dataRepository, IHubContext<QuestionsHub> questionHubContext, IQuestionCache questionCache, IHttpClientFactory clientFactory
+            , IConfiguration configuration)
 
-        public QuestionsController(IDataRepository dataRepository, IHubContext<QuestionsHub> questionHubContext)
-
-        {
+        { 
             _dataRepository = dataRepository;
             _questionHubContext = questionHubContext;
+            _cache = questionCache;
+            _clientFactory = clientFactory;
+            _auth0UserInfo = $"{configuration["Auth0:Authority"]}userinfo";
           
         }
 
-
-
         [HttpGet]
 
-        public IEnumerable<QuestionGetManyResponse> GetQuestions(string search, bool includeAnswers, int page = 1 , int pageSize = 20)
+        public async Task<IEnumerable<QuestionGetManyResponse>> GetQuestions(string search, bool includeAnswers, int page = 1 , int pageSize = 20)
 
         {
 
@@ -56,18 +63,17 @@ namespace MyQnA_APP.Controllers
 
                 if(includeAnswers)
                 {
-                    return _dataRepository.GetQuestionWithAnswers();
+                    return await _dataRepository.GetQuestionsWithAnswers();
                 }else
                 {
-                    return _dataRepository.GetQuestions();
-                }
-           
+                    return await _dataRepository.GetQuestions();
+                } 
                 
             }
             else
 
             {
-                return _dataRepository.GetQuestionsBySearchWithPaging(
+                return await _dataRepository.GetQuestionsBySearchWithPaging(
                     search,
                     page,
                     pageSize);
@@ -75,45 +81,45 @@ namespace MyQnA_APP.Controllers
 
         }
 
-
-
         [HttpGet("unanswered")]
-
         public async Task<IEnumerable<QuestionGetManyResponse>> GetUnansweredQuestions()
         {
+            
             return await _dataRepository.GetUnansweredQuestionsAsync();
 
         }
 
-
-
         [HttpGet("{questionId}")]
-        public ActionResult<QuestionGetSingleResponse> GetQuestion(int questionId)
+        public async Task<ActionResult<QuestionGetSingleResponse>> GetQuestion(int questionId)
 
         {
 
-            var question = _dataRepository.GetQuestion(questionId);
+            var question = _cache.Get(questionId);
 
             if (question == null)
             {
-                return NotFound();
+                question = await _dataRepository.GetQuestion(questionId);
+                if(question == null)
+                {
+                    return NotFound();
+                }
+
+                _cache.Set(question);
             }
+
             return question;
 
         }
 
-
-
+        [Authorize]
         [HttpPost]
-
-        [HttpPost]
-        public ActionResult<QuestionGetSingleResponse> PostQuestion(QuestionPostRequest questionPostRequest)
+        public async Task<ActionResult<QuestionGetSingleResponse>> PostQuestion(QuestionPostRequest questionPostRequest)
         {
-            var savedQuestion = _dataRepository.PostQuestion(new QuestionPostFullRequest
+            var savedQuestion = await _dataRepository.PostQuestion(new QuestionPostFullRequest
             {
                 Title = questionPostRequest.Title,
                 Content = questionPostRequest.Content,
-                UserId = "1",
+                UserId = User.FindFirst(ClaimTypes.NameIdentifier).Value,
                 UserName = "bob.test@test.com",
                 Created = DateTime.UtcNow
             });
@@ -124,18 +130,19 @@ namespace MyQnA_APP.Controllers
 
 
         /**
-         *Asp.Net core model minding will populate the questionPutRequest class
+         *Asp.Net core model binding will populate the questionPutRequest class
          * instance from the Http request body
          */
+        [Authorize(Policy = "MustBeQuestionAuthor")]
         [HttpPut("{questionID}")]
-        public ActionResult<QuestionGetSingleResponse> PutQuestion(int questionID,
+        public async Task<ActionResult<QuestionGetSingleResponse>> PutQuestion(int questionID,
             QuestionPutRequest questionPutRequest)
         {
 
             // Console.WriteLine(questionPutRequest);
 
             var question =
-                _dataRepository.GetQuestion(questionID);
+                await _dataRepository.GetQuestion(questionID);
             if (question == null)
             {
                 return NotFound();
@@ -150,21 +157,24 @@ namespace MyQnA_APP.Controllers
                 questionPutRequest.Content;
 
             var savedQuestion =
-                _dataRepository.PutQuestion(questionID, questionPutRequest);
+                await _dataRepository.PutQuestion(questionID, questionPutRequest);
 
+            _cache.Remove(savedQuestion.QuestionId);
             return savedQuestion;
         }
 
+        [Authorize(Policy ="MustBeQuestionAuthor")]
         [HttpDelete("{questionId}")]
-        public ActionResult DeleteQuestion(int questionId)
+        public async Task<ActionResult> DeleteQuestion(int questionId)
         {
 
-            var question = _dataRepository.GetQuestion(questionId);
+            var question = await _dataRepository.GetQuestion(questionId);
             if (question == null)
             {
                 return NotFound();
             }
-            _dataRepository.DeleteQuestion(questionId);
+            await _dataRepository.DeleteQuestion(questionId);
+            _cache.Remove(questionId);
             return NoContent();
         }
 
@@ -173,10 +183,11 @@ namespace MyQnA_APP.Controllers
          * The answer is then passed to the data repository to insert into the database.
          * The saved answer is returned from the data repository, which is returned in the response.
          */
+        [Authorize]
         [HttpPost("answer")]
-        public ActionResult<AnswerGetResponse> PostAnswer(AnswerPostRequest answerPostRequest)
+        public async Task<ActionResult<AnswerGetResponse>> PostAnswer(AnswerPostRequest answerPostRequest)
         {
-            var questionExists = _dataRepository.QuestionExists(answerPostRequest.QuestionId.Value);
+            var questionExists = await _dataRepository.QuestionExists(answerPostRequest.QuestionId.Value);
             if (!questionExists)
             {
                 return NotFound();
@@ -184,16 +195,16 @@ namespace MyQnA_APP.Controllers
 
             // mapping data from request model in the data respitory.
             // For big projects can also using AutoMapper
-            var savedAnswer = _dataRepository.PostAnswer(new AnswerPostFullRequest
+            var savedAnswer = await _dataRepository.PostAnswer(new AnswerPostFullRequest
             {
                 QuestionId = answerPostRequest.QuestionId.Value,
                 Content = answerPostRequest.Content,
-                UserId = "1",
+                UserId = User.FindFirst(ClaimTypes.NameIdentifier).Value,
                 UserName = "bob.test@test.com",
                 Created = DateTime.UtcNow
             });
 
-
+            _cache.Remove(answerPostRequest.QuestionId.Value);
             /**
              * We get access to the SignalR group through the Group method in the Clients property in the hub context
              * by passing in the group name. Remember that the group name is the word "Question", 
@@ -203,13 +214,47 @@ namespace MyQnA_APP.Controllers
              * we have got it from the data repository.
              */
 
-            _questionHubContext.Clients.Group(
+            await _questionHubContext.Clients.Group(
                 $"Question-{answerPostRequest.QuestionId.Value}").
                 SendAsync("ReceiveQuestion",
                 _dataRepository.GetQuestion(answerPostRequest.QuestionId.Value));
 
 
             return savedAnswer;
+        }
+
+        /**
+         * We make GET HTTP request to the Auth0 User information endpoint
+         * with the Authorization HTTP header from the current request to teh ASP.NET
+         * Core backend. This HTTP header will contain the acess token that will give us acess
+         * to the Auth0 endpoint.
+         * 
+         * If the reuqest is succesful, we parse the response body into the User model.
+         * We used JSON serializer in .NET Core 3.0.
+         * 
+         */
+        private async Task<string> GetUserName()
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, _auth0UserInfo);
+            request.Headers.Add("Authorization", Request.Headers["Authorization"].First());
+
+            var client = _clientFactory.CreateClient();
+
+            var response = await client.SendAsync(request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var jsonContent = await response.Content.ReadAsStringAsync();
+                var user = JsonSerializer.Deserialize<User>(jsonContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+                return user.Name;
+            }
+            else
+            {
+                return "";
+            }
         }
 
 

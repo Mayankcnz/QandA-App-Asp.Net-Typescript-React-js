@@ -13,6 +13,11 @@ using Microsoft.Extensions.Logging;
 using DbUp;
 using MyQnA_APP.Data;
 using MyQnA_APP.Hubs;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http;
+using MyQnA_APP.Authorization;
+using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MyQnA_APP
 {
@@ -53,7 +58,7 @@ namespace MyQnA_APP
 
             // The final step is to get DbUp to do a databse migration if there are any 
             // pending SQL Scripts
-            if(upgrader.IsUpgradeRequired())
+            if (upgrader.IsUpgradeRequired())
             {
                 upgrader.PerformUpgrade();
             }
@@ -73,7 +78,36 @@ namespace MyQnA_APP
                 builder => builder.AllowAnyMethod().AllowAnyHeader().WithOrigins("http://localhost:3000").AllowCredentials()));
 
             services.AddSignalR();
+            // make the cache available for dependency injection so that can inject it into the
+            // API controller.
+            services.AddMemoryCache();
+            services.AddSingleton<IQuestionCache, QuestionCache>();
 
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }
+            )
+                .AddJwtBearer(options =>
+                {
+                    options.Authority = Configuration["Auth0:Authority"];
+                    options.Audience = Configuration["Auth0:Audience"];
+                }
+                );
+
+            /**
+             * The authorization policy has its requirements defined in a class called 
+             * MustBeQuestionAuthorRequirement
+             */
+            services.AddHttpClient();
+            services.AddAuthorization(options => 
+            options.AddPolicy("MustBeQuestionAuthor", 
+            policy => policy.Requirements.Add(new MustBeQuestionAuthorRequirement())));
+            // Handler for MustBeQuestionAuthorRequirement will be implemented in a class
+            // called MustBeQuestionAuthorHandler
+            services.AddScoped<IAuthorizationHandler, MustBeQuestionAuthorHandler>();
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -84,7 +118,8 @@ namespace MyQnA_APP
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-            }else
+            }
+            else
             {
 
                 app.UseHttpsRedirection();
@@ -93,7 +128,7 @@ namespace MyQnA_APP
 
 
             app.UseRouting();
-
+            app.UseAuthentication();
             app.UseAuthorization();
 
 
@@ -101,7 +136,7 @@ namespace MyQnA_APP
             {
                 endpoints.MapControllers();
                 // signalR requests to the /questionsapth will be handled by the questionHub class
-                endpoints.MapHub<QuestionsHub>("/questionshub"); 
+                endpoints.MapHub<QuestionsHub>("/questionshub");
             });
         }
     }

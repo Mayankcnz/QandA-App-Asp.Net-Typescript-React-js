@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "m/Mc9LIQcHzGGTCMjM4lOV0JTsY7MHNKxaRwF4SnTeimbBglW5K9vLJRhZ7MwN/uTKNNQsaPZR8B/T8wKOZ87w==",
+  "dgSpecHash": "hJu/ryqFEXfoIIvwqgd4GpFxVljXve25163fWKMM24Fhsrmtki8b909aM2SPuitHBkN3p2Ao9iAshuJ9Ixl8KA==",
   "success": true,
   "projectFilePath": "C:\\Users\\Mayank\\Documents\\HumbleBundle\\MyQnA_APP\\MyQnA_APP\\MyQnA_APP.csproj",
   "expectedPackageFiles": [
@@ -8,6 +8,7 @@
     "C:\\Users\\Mayank\\.nuget\\packages\\dbup\\4.3.0\\dbup.4.3.0.nupkg.sha512",
     "C:\\Users\\Mayank\\.nuget\\packages\\dbup-core\\4.3.0\\dbup-core.4.3.0.nupkg.sha512",
     "C:\\Users\\Mayank\\.nuget\\packages\\dbup-sqlserver\\4.3.0\\dbup-sqlserver.4.3.0.nupkg.sha512",
+    "C:\\Users\\Mayank\\.nuget\\packages\\microsoft.aspnetcore.authentication.jwtbearer\\3.1.4\\microsoft.aspnetcore.authentication.jwtbearer.3.1.4.nupkg.sha512",
     "C:\\Users\\Mayank\\.nuget\\packages\\microsoft.azure.services.appauthentication\\1.3.1\\microsoft.azure.services.appauthentication.1.3.1.nupkg.sha512",
     "C:\\Program Files\\dotnet\\sdk\\NuGetFallbackFolder\\microsoft.csharp\\4.5.0\\microsoft.csharp.4.5.0.nupkg.sha512",
     "C:\\Users\\Mayank\\.nuget\\packages\\microsoft.data.sqlclient\\1.1.2\\microsoft.data.sqlclient.1.1.2.nupkg.sha512",

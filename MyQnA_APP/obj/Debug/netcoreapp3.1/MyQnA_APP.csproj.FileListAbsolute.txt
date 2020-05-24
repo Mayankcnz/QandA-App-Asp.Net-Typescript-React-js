@@ -30,8 +30,6 @@ C:\Users\Mayank\Documents\HumbleBundle\MyQnA_APP\MyQnA_APP\bin\Debug\netcoreapp3
 C:\Users\Mayank\Documents\HumbleBundle\MyQnA_APP\MyQnA_APP\bin\Debug\netcoreapp3.1\runtimes\unix\lib\netcoreapp2.0\System.Runtime.Caching.dll
 C:\Users\Mayank\Documents\HumbleBundle\MyQnA_APP\MyQnA_APP\bin\Debug\netcoreapp3.1\runtimes\win\lib\netcoreapp2.0\System.Runtime.Caching.dll
 C:\Users\Mayank\Documents\HumbleBundle\MyQnA_APP\MyQnA_APP\bin\Debug\netcoreapp3.1\runtimes\win\lib\netstandard2.0\System.Security.Cryptography.ProtectedData.dll
-C:\Users\Mayank\Documents\HumbleBundle\MyQnA_APP\MyQnA_APP\obj\Debug\netcoreapp3.1\MyQnA_APP.csproj.CoreCompileInputs.cache
-C:\Users\Mayank\Documents\HumbleBundle\MyQnA_APP\MyQnA_APP\obj\Debug\netcoreapp3.1\MyQnA_APP.MvcApplicationPartsAssemblyInfo.cache
 C:\Users\Mayank\Documents\HumbleBundle\MyQnA_APP\MyQnA_APP\bin\Debug\netcoreapp3.1\MyQnA_APP.deps.json
 C:\Users\Mayank\Documents\HumbleBundle\MyQnA_APP\MyQnA_APP\bin\Debug\netcoreapp3.1\MyQnA_APP.runtimeconfig.json
 C:\Users\Mayank\Documents\HumbleBundle\MyQnA_APP\MyQnA_APP\bin\Debug\netcoreapp3.1\MyQnA_APP.runtimeconfig.dev.json
@@ -47,3 +45,6 @@ C:\Users\Mayank\Documents\HumbleBundle\MyQnA_APP\MyQnA_APP\bin\Debug\netcoreapp3
 C:\Users\Mayank\Documents\HumbleBundle\MyQnA_APP\MyQnA_APP\obj\Debug\netcoreapp3.1\MyQnA_APP.dll
 C:\Users\Mayank\Documents\HumbleBundle\MyQnA_APP\MyQnA_APP\obj\Debug\netcoreapp3.1\MyQnA_APP.pdb
 C:\Users\Mayank\Documents\HumbleBundle\MyQnA_APP\MyQnA_APP\obj\Debug\netcoreapp3.1\MyQnA_APP.genruntimeconfig.cache
+C:\Users\Mayank\Documents\HumbleBundle\MyQnA_APP\MyQnA_APP\obj\Debug\netcoreapp3.1\MyQnA_APP.csproj.CoreCompileInputs.cache
+C:\Users\Mayank\Documents\HumbleBundle\MyQnA_APP\MyQnA_APP\obj\Debug\netcoreapp3.1\MyQnA_APP.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\Mayank\Documents\HumbleBundle\MyQnA_APP\MyQnA_APP\bin\Debug\netcoreapp3.1\Microsoft.AspNetCore.Authentication.JwtBearer.dll
